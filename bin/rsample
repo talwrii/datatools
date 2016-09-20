@@ -8,6 +8,8 @@
 import sys, os
 import random
 import argparse
+import numpy.random
+import math
 
 name = os.path.basename(sys.argv[0])
 usage = \
@@ -21,6 +23,9 @@ def build_parser():
     parser.add_argument('size', type=int)
     parser.add_argument('filename', type=str, nargs='?')
     parser.add_argument('--with-replacement', '-R', action='store_true', help='Sample with replacement')
+    parser.add_argument('--normal', action='store_const', dest='distribution', help='Use a normal distribution', const='normal')
+    parser.add_argument('--mean', '-m', type=float, help='Mean for distributions (default 0)')
+    parser.add_argument('--variance', '-V', type=float, help='Variance for distributions (default 1)')
     return parser
 
 # http://stackoverflow.com/questions/3853722/python-argparse-how-to-insert-newline-in-the-help-text
@@ -62,14 +67,25 @@ def main():
     parser = build_parser()
     args = parser.parse_args()
 
-    if args.with_replacement:
-        selection_method = sample_with_replacement
-    else:
-        selection_method = sample_without_replacement
+    if not args.distribution:
+        if args.with_replacement:
+            selection_method = sample_with_replacement
+        else:
+            selection_method = sample_without_replacement
 
-    stream = open(args.filename) if args.filename else sys.stdin
-    for line in selection_method(args.size, stream):
-        sys.stdout.write(line)
+        stream = open(args.filename) if args.filename else sys.stdin
+        for line in selection_method(args.size, stream):
+            sys.stdout.write(line)
+    else:
+        if args.filename:
+            raise Exception('You can specify a filename if you specify a distribution')
+
+        if args.distribution == 'normal':
+            stddev = maths.sqrt(args.variance) if args.variance is not None else None
+            for number in numpy.random.normal(size=args.size, loc=args.mean or 0, scale=stddev or 1):
+                print number
+        else:
+            raise ValueError(args.distribution)
 
 
 if __name__ == '__main__':
